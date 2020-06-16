@@ -1,0 +1,18 @@
+{
+<<<<<<< HEAD
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {}
+}
+=======
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {}
+}
+>>>>>>> models_set_up

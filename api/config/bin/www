@@ -1,0 +1,5 @@
+var sequelize = require('../models').sequelize; // import Sequelize
+
+sequelize.sync().then(() => {
+  server.listen(port);
+});
