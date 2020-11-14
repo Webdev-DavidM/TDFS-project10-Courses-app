@@ -1,45 +1,26 @@
-'use strict';
-const Sequelize = require('sequelize');
+"use strict";
+const mongoose = require("mongoose");
 
-module.exports = (sequelize, DataTypes) => {
-  const Course = sequelize.define('Course', {
-    id: {
-      type: Sequelize.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-    },
-    title: {
-      type: Sequelize.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: {
-          msg: "Please provide a value for 'title'",
-        },
-      },
-    },
-    description: {
-      type: Sequelize.TEXT,
-      allowNull: false,
-      validate: {
-        notEmpty: {
-          msg: ' Please provide a value for description',
-        },
-      },
-    },
-    estimatedTime: {
-      type: Sequelize.STRING,
-    },
-    materialsNeeded: {
-      type: Sequelize.STRING,
-    },
-  });
-  Course.associate = function (models) {
-    Course.belongsTo(models.User, {
-      foreignKey: {
-        fieldName: 'userId',
-        allowNull: false,
-      },
-    });
-  };
-  return Course;
-};
+const courseSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: [true, "Please provide a value for 'title'"],
+  },
+  description: {
+    type: String,
+    required: [true, "Please provide a value for 'description'"],
+  },
+  estimatedTime: {
+    type: String,
+  },
+  materialsNeeded: {
+    type: String,
+  },
+  user: {
+    type: String,
+  },
+});
+
+const Course = mongoose.model("Course", courseSchema);
+
+module.exports = Course;

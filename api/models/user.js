@@ -1,58 +1,28 @@
-'use strict';
+"use strict";
+const mongoose = require("mongoose");
 
-const Sequelize = require('sequelize');
+const userSchema = new mongoose.Schema({
+  firstName: {
+    type: String,
+    required: [true, "Please provide a value for 'firstName'"],
+  },
+  lastName: {
+    type: String,
+    required: [true, "Please provide a value for 'lastName"],
+  },
+  emailAddress: {
+    type: String,
+    required: [true, "Please provide a value for 'email"],
+  },
+  password: {
+    type: String,
+    required: [true, "Please provide a value for 'password"],
+  },
+  courses: {
+    type: String,
+  },
+});
 
-module.exports = (sequelize, DataTypes) => {
-  const User = sequelize.define('User', {
-    id: {
-      type: Sequelize.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    firstName: {
-      type: Sequelize.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: {
-          msg: "Please provide a value for 'firstName'",
-        },
-      },
-    },
-    lastName: {
-      type: Sequelize.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: {
-          msg: "Please provide a value for 'lastName'",
-        },
-      },
-    },
-    emailAddress: {
-      type: Sequelize.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: {
-          msg: 'please provide a value for Email',
-        },
-      },
-    },
-    password: {
-      type: Sequelize.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: {
-          msg: 'please provide a value for password',
-        },
-      },
-    },
-  });
-  User.associate = function (models) {
-    User.hasMany(models.Course, {
-      foreignKey: {
-        fieldName: 'userId',
-        allowNull: false,
-      },
-    });
-  };
-  return User;
-};
+const User = mongoose.model("User", userSchema);
+
+module.exports = User;
