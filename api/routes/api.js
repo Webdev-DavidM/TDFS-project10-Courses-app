@@ -211,45 +211,6 @@ router.put("/courses/:id", authenticateUser, async (req, res) => {
         .end();
     }
   }
-  // if (!req.body.title) {
-  //   errors.message.push("Please provide a title");
-  //   okToUpdate = false;
-  // }
-  // if (!req.body.description) {
-  //   errors.message.push("Please provide a description");
-  //   okToUpdate = false;
-  // }
-  // if (!okToUpdate) {
-  //   res.status(400).json(errors).end();
-  // }
-  // //here I will make sure that find the course on the database and msake sure the course
-  // // user is the same as chosenUser_id
-  // let SelectedCourse = null;
-  // try {
-  //   await Course.findOne({ _id: req.params.id }, (err, course) => {
-  //     SelectedCourse = course;
-  //   });
-  // } catch (err) {
-  //   res.json(err).end();
-  // }
-  // if (!SelectedCourse) {
-  //   res.status(400).json("no course found").end();
-  // }
-
-  // if (SelectedCourse) {
-  //   // as objectIDs are bson object I need to convert them to strings to
-  //   // compare them to my user string
-  //   userId = req.currentUser._id.toString();
-  //   if (SelectedCourse.user === userId) {
-  //     await Course.updateOne({ _id: req.params.id }, req.body);
-  //     return res.status(204).end();
-  //   } else {
-  //     res
-  //       .status(403)
-  //       .json("Access denied, a user can only update their own courses")
-  //       .end();
-  //   }
-  // }
 });
 
 // delete route- this deletes the chosen route and returns a 204 status code and not comments
