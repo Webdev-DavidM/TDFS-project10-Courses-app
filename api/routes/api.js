@@ -1,23 +1,25 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { User, Course } = require('../models/index');
-const bcryptjs = require('bcryptjs');
-const auth = require('basic-auth');
+const Course = require("../models/course");
+const User = require("../models/user");
+const bcryptjs = require("bcryptjs");
+const auth = require("basic-auth");
+const mongoose = require("mongoose");
 
 /* Handler function to wrap each route. */
 function asyncHandler(cb) {
   return async (req, res, next) => {
+    let errors = [];
     try {
       await cb(req, res, next);
     } catch (err) {
-      if (
-        err.name === 'SequelizeValidationError' ||
-        'SequelizeUniqueConstraintError'
-      ) {
-        let errors = err.errors.map((err) => err.message);
-        res.status(400).json({ message: errors });
+      if (err.reason) {
+        res.status(400).json({ message: err }).end();
       } else {
-        res.status(400).json(err);
+        for (const error in err.errors) {
+          errors.push(err.errors[error].message);
+          res.status(400).json({ message: errors }).end();
+        }
       }
     }
   };
@@ -29,21 +31,21 @@ const authenticateUser = async (req, res, next) => {
   let message = null;
   // Parse the user's credentials from the Authorization header.
   const credentials = auth(req);
+  console.log(credentials);
   // If the user's credentials are available...
   if (credentials) {
-    // Attempt to retrieve the user from the data store
-    // by their username (i.e. the user's "key"
-    // from the Authorization header).
-    // This is one way of finding the user with the same email but I have choosing a different one below //
-    // const users = await User.findAll();
-    // const user = users.find((u) => u.emailAddress === credentials.name);
-    // i have chosen this way to find the user with the same password to use
-    // practice some sequelize querying //
-    const chosenUser = await User.findOne({
-      where: {
-        emailAddress: `${credentials.name}`,
-      },
-    });
+    let chosenUser = false;
+    try {
+      await User.findOne({ emailAddress: credentials.name }, (error, user) => {
+        if (user.length !== 0) {
+          // note find returns an array, so I am returning the first object from the array with [0]
+          chosenUser = user;
+        }
+      });
+    } catch (err) {
+      console.log(err);
+    }
+    console.log("user from database", chosenUser);
     // If a user was successfully retrieved from the data store...
     if (chosenUser) {
       // Use the bcryptjs npm package to compare the user's password
@@ -54,6 +56,8 @@ const authenticateUser = async (req, res, next) => {
         chosenUser.password
       );
       // If the passwords match...
+      console.log("authenticated", authenticated);
+
       if (authenticated) {
         console.log(
           `Authentication successful for username: ${chosenUser.firstName} ${chosenUser.lastName}`
@@ -63,19 +67,20 @@ const authenticateUser = async (req, res, next) => {
         // will have access to the user's information.
         req.currentUser = chosenUser;
       } else {
-        message = `Authentication failure for username: ${chosenUser.id}`;
+        message = `Authentication failure for username: ${chosenUser.firstName} ${chosenUser.lastName}`;
       }
     } else {
       message = `User not found for username: ${credentials.name}`;
     }
   } else {
-    message = 'Auth header not found';
+    message = "Auth header not found";
   }
   // If user authentication failed...
-  if (message) {
+
+  if (message !== null) {
     console.warn(message);
     // Return a response with a 401 Unauthorized HTTP status code.
-    res.status(401).json({ message: 'Access Denied' });
+    res.status(401).json({ message: "Access Denied" });
   } else {
     // Or if user authentication succeeded...
     // Call the next() method.
@@ -88,167 +93,190 @@ const authenticateUser = async (req, res, next) => {
 // the inline route handler will never get called.
 
 // User route- This route returned the currently authenticated user and returns a status code of 200
-
-router.get('/users', authenticateUser, async (req, res) => {
-  // this will check if the authenticated user id has the same id as the user requested in the params
-  user = await User.findByPk(req.currentUser.id, {
-    attributes: ['id', 'firstName', 'lastName', 'emailAddress'],
-  });
-  if (user) {
-    res.json(user);
-  }
-});
+// WORKING ON POSTMAN//
+router.get(
+  "/users",
+  authenticateUser,
+  asyncHandler(async (req, res) => {
+    //this will check if the authenticated user id has the same id as the user requested in the params
+    let user = await User.findOne({ _id: req.currentUser._id });
+    if (user) {
+      res.json(user);
+    }
+    if (!user) {
+      res.status(400).json("no user found");
+    }
+  })
+);
 
 // User route- This post route allows you to add a user to the database, sets the location header to '/', returns no content but a status code of 201
-
+// WORKING ON POSTMAN
 router.post(
-  '/users',
+  "/users",
   asyncHandler(async (req, res) => {
+    // here I check if there is a user already with this email address, fi so I send back an error message
+    if (req.body.emailAddress) {
+      let userExists = await User.findOne({
+        emailAddress: req.body.emailAddress,
+      });
+      if (userExists) {
+        return res.status(401).json("user exists");
+      }
+    }
     if (req.body.password) {
       // The next two lines I am hashing the password to make it secure
       const password = bcryptjs.hashSync(req.body.password);
       req.body.password = password;
     }
-    console.log(req.body);
-    await User.create(req.body);
-    // res.location redirsct the user to the home page
-    res.location('/').status(201).end();
+    let response = await User.create(req.body);
+    res.status(201).json(response).end();
   })
 );
 
 // course get route- returns a list of courses ( including the user that owns each course ) and returns a status of 200
-
+//WORKING ON POSTMAN
 router.get(
-  '/courses',
+  "/courses",
   asyncHandler(async (req, res) => {
-    let courses;
-    courses = await Course.findAll({
-      attributes: ['id', 'title', 'description', 'estimatedTime', 'userId'],
-      include: [
-        {
-          model: User,
-          attributes: ['id', 'firstName', 'lastName', 'emailAddress'],
-        },
-      ],
-    });
-    res.json(courses);
+    let course = await Course.find();
+    res.status(200).json(course);
   })
 );
 
 // specific course get route- returns a specific course based on the course id ( including the user that owns the course) and returns a 200 status code //
-
+// WORKING ON POSTMAN
 router.get(
-  '/courses/:id',
+  "/courses/:id",
   asyncHandler(async (req, res) => {
-    let course;
-    course = await Course.findByPk(req.params.id, {
-      attributes: [
-        'id',
-        'title',
-        'description',
-        'estimatedTime',
-        'materialsNeeded',
-      ],
-      include: [
-        {
-          model: User,
-          attributes: ['id', 'firstName', 'lastName', 'emailAddress'],
-        },
-      ],
-    });
-
+    let course = await Course.findOne({ _id: req.params.id });
     if (course) {
-      res.json(course);
+      res.status(200).json(course);
     } else {
-      res.status(404).json('no such course found');
+      res.status(404).json("no such course found");
     }
   })
 );
 
 // post route for courses- create a course, sets the location header for the uri for the course, and returns no content but a 201 status code
-
+// WORKING ON POSTMAN
 router.post(
-  '/courses',
+  "/courses",
   authenticateUser,
   asyncHandler(async (req, res) => {
-    let course = req.body;
-    // let courseTitle = req.body.title;
-    // let courseId ;
-    let createdCourse = await Course.create(course);
-    // redirect the location header to the course created.
-    res.location(`/course/${createdCourse.id}`).status(201).end();
+    //Here now that the user has been authenticated with my middleware, I can use the id from the currentUser found in
+    // authenticateUser middleware to add to the course.
+    req.body.user = req.currentUser._id;
+    let response = await Course.create(req.body);
+    res.status(201).json(response).end();
   })
 );
 
-// put route- this will update a course and return a status code of 204 with no content. Sequelize will not validate if they are empty on put methods like it does on post methods, therefore I have set up my own validation below if any fields are empty.
+// put route- this will update a course and return a status code of 204 with no content.
+//Sequelize will not validate if they are empty on put methods like it does on post methods, therefore I have set up my own validation below if any fields are empty.
+//
+router.put("/courses/:id", authenticateUser, async (req, res) => {
+  // as validation is not performed on updates as default, I will validate the data myself
+  let errors = {};
+  errors.message = [];
+  let okToUpdate = true;
+  if (!req.body.title) {
+    errors.message.push("Please provide a title");
+    okToUpdate = false;
+  }
+  if (!req.body.description) {
+    errors.message.push("Please provide a description");
+    okToUpdate = false;
+  }
+  if (!okToUpdate) {
+    res.status(400).json(errors).end();
+  }
+  //here I will make sure that find the course on the database and msake sure the course
+  // user is the same as chosenUser_id
 
-router.put(
-  '/courses/:id',
-  authenticateUser,
-  asyncHandler(async (req, res) => {
-    let errors = {};
-    let okToUpdate = true;
-    if (!req.body.title) {
-      errors.message = ['Please provide a title'];
-      okToUpdate = false;
+  let course = await Course.findOne({ _id: req.params.id });
+  if (!course) {
+    res.status(400).json("no course found").end();
+  }
+  if (course) {
+    // as objectIDs are bson object I need to convert them to strings to
+    // compare them to my user string
+    userId = req.currentUser._id.toString();
+    if (course.user === userId) {
+      await Course.updateOne({ _id: req.params.id }, req.body);
+      return res.status(204).end();
+    } else {
+      res
+        .status(403)
+        .json("Access denied, a user can only update their own courses")
+        .end();
     }
-    if (!req.body.description) {
-      if (errors.message) {
-        errors.message.push('Please provide a description');
-      } else {
-        errors.message = ['Please provide a description'];
-      }
-      okToUpdate = false;
-    }
-    if (!okToUpdate) {
-      res.status(400).json(errors);
-    }
-    if (okToUpdate) {
-      let updatedCourse;
-      updatedCourse = await Course.findByPk(req.params.id);
-      if (updatedCourse) {
-        if (updatedCourse.userId == req.currentUser.id) {
-          // If checks if there is a course, if not it will throw an error of
-          // course not found below in the else statement
-          await updatedCourse.update(req.body);
-          res.status(204).end();
-        } else {
-          res
-            .status(403)
-            .json('Access denied, a user can only update their own courses');
-        }
-      } else {
-        res.status(404).end();
-      }
-    }
-  })
-);
+  }
+  // if (!req.body.title) {
+  //   errors.message.push("Please provide a title");
+  //   okToUpdate = false;
+  // }
+  // if (!req.body.description) {
+  //   errors.message.push("Please provide a description");
+  //   okToUpdate = false;
+  // }
+  // if (!okToUpdate) {
+  //   res.status(400).json(errors).end();
+  // }
+  // //here I will make sure that find the course on the database and msake sure the course
+  // // user is the same as chosenUser_id
+  // let SelectedCourse = null;
+  // try {
+  //   await Course.findOne({ _id: req.params.id }, (err, course) => {
+  //     SelectedCourse = course;
+  //   });
+  // } catch (err) {
+  //   res.json(err).end();
+  // }
+  // if (!SelectedCourse) {
+  //   res.status(400).json("no course found").end();
+  // }
+
+  // if (SelectedCourse) {
+  //   // as objectIDs are bson object I need to convert them to strings to
+  //   // compare them to my user string
+  //   userId = req.currentUser._id.toString();
+  //   if (SelectedCourse.user === userId) {
+  //     await Course.updateOne({ _id: req.params.id }, req.body);
+  //     return res.status(204).end();
+  //   } else {
+  //     res
+  //       .status(403)
+  //       .json("Access denied, a user can only update their own courses")
+  //       .end();
+  //   }
+  // }
+});
 
 // delete route- this deletes the chosen route and returns a 204 status code and not comments
 
 router.delete(
-  '/courses/:id',
+  "/courses/:id",
   authenticateUser,
   asyncHandler(async (req, res) => {
-    let course;
-    course = await Course.findByPk(req.params.id);
-    if (req.currentUser.id == parseInt(course.userId)) {
-      console.log(course);
-      if (course) {
-        await course.destroy();
+    let course = await Course.findOne(
+      { _id: req.params.id },
+      (err, course) => {}
+    );
+    if (course) {
+      let currentUser = req.currentUser.id.toString();
+      if (currentUser === course.user) {
+        await Course.deleteOne({ _id: req.params.id });
         res.status(204).end();
       } else {
-        res.status(400).json('No such course to delete');
+        console.log("access denied");
+        res
+          .status(403)
+          .json("Access denied, a user can only delete their own courses");
       }
     } else {
-      console.log('access denied');
-      res
-        .status(403)
-        .json('Access denied, a user can only delete their own courses');
+      res.status(403).json("Course doesnt exist");
     }
   })
 );
-
-//
 
 module.exports = router;
