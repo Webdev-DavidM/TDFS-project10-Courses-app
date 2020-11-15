@@ -219,10 +219,7 @@ router.delete(
   "/courses/:id",
   authenticateUser,
   asyncHandler(async (req, res) => {
-    let course = await Course.findOne(
-      { _id: req.params.id },
-      (err, course) => {}
-    );
+    let course = await Course.findOne({ _id: req.params.id });
     if (course) {
       let currentUser = req.currentUser.id.toString();
       if (currentUser === course.user) {
