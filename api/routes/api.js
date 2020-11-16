@@ -29,22 +29,23 @@ function asyncHandler(cb) {
 
 const authenticateUser = async (req, res, next) => {
   let message = null;
+  let chosenUser = null;
   // Parse the user's credentials from the Authorization header.
   const credentials = auth(req);
   console.log(credentials);
   // If the user's credentials are available...
   if (credentials) {
-    let chosenUser = false;
     try {
-      await User.findOne({ emailAddress: credentials.name }, (error, user) => {
-        if (user.length !== 0) {
-          // note find returns an array, so I am returning the first object from the array with [0]
-          chosenUser = user;
-        }
-      });
+      let user = await User.findOne({ emailAddress: credentials.name });
+      if (user) {
+        chosenUser = user;
+      } else {
+        return res.status(401).json("no such user exists");
+      }
     } catch (err) {
-      console.log(err);
+      res.json(err);
     }
+
     console.log("user from database", chosenUser);
     // If a user was successfully retrieved from the data store...
     if (chosenUser) {
@@ -150,7 +151,11 @@ router.get(
   asyncHandler(async (req, res) => {
     let course = await Course.findOne({ _id: req.params.id });
     if (course) {
-      res.status(200).json(course);
+      let user = await User.findOne(
+        { _id: course.user },
+        { _id: 1, firstName: 1, lastName: 1 }
+      );
+      res.status(200).json({ course, user });
     } else {
       res.status(404).json("no such course found");
     }
@@ -195,7 +200,7 @@ router.put("/courses/:id", authenticateUser, async (req, res) => {
 
   let course = await Course.findOne({ _id: req.params.id });
   if (!course) {
-    res.status(400).json("no course found").end();
+    res.status(404).json("no course found").end();
   }
   if (course) {
     // as objectIDs are bson object I need to convert them to strings to
@@ -219,23 +224,18 @@ router.delete(
   "/courses/:id",
   authenticateUser,
   asyncHandler(async (req, res) => {
-    let course = await Course.findOne(
-      { _id: req.params.id },
-      (err, course) => {}
-    );
-    if (course) {
+    console.log(req.params.id);
+    debugger;
+    let course = await Course.findOne({ _id: req.params.id });
+    console.log("course", course);
+    if (!course) {
+      res.status(401).json("Course doesnt exist");
+    } else {
       let currentUser = req.currentUser.id.toString();
       if (currentUser === course.user) {
         await Course.deleteOne({ _id: req.params.id });
-        res.status(204).end();
-      } else {
-        console.log("access denied");
-        res
-          .status(403)
-          .json("Access denied, a user can only delete their own courses");
+        res.status(204).json("deleted").end();
       }
-    } else {
-      res.status(403).json("Course doesnt exist");
     }
   })
 );

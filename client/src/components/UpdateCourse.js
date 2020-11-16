@@ -1,17 +1,16 @@
-import React, { Component } from 'react';
+import React, { Component } from "react";
 
 export default class UpdateCourse extends Component {
   constructor() {
     super();
     this.state = {
-      id: null,
-      title: '',
-      description: '',
-      estimatedTime: '',
-      materialsNeeded: '',
-      errors: '',
-      userId: null,
-      owner: null,
+      _id: null,
+      title: "",
+      description: "",
+      estimatedTime: "",
+      materialsNeeded: "",
+      errors: "",
+      user: "",
     };
   }
 
@@ -19,30 +18,33 @@ export default class UpdateCourse extends Component {
     event.preventDefault();
     const { password, emailAddress } = this.props.context.authenticatedUser;
     let {
-      id,
+      _id,
       title,
       description,
       estimatedTime,
       materialsNeeded,
-      userId,
+      user,
     } = this.state;
-    let username = emailAddress;
-    let user = { password, username };
+
     let course = {
-      id,
+      _id,
       title,
       description,
       estimatedTime,
       materialsNeeded,
-      userId,
+      user,
     };
-    this.props.context.data.updateCourse(course, user).then((response) => {
-      if (response.message) {
-        this.setState({ errors: response.message });
-      } else {
-        this.props.history.push('/');
-      }
-    });
+
+    let username = emailAddress;
+    this.props.context.data
+      .updateCourse(course, { password, username })
+      .then((response) => {
+        if (response.message) {
+          this.setState({ errors: response.message });
+        } else {
+          this.props.history.push("/");
+        }
+      });
   };
 
   componentDidMount = () => {
@@ -58,7 +60,7 @@ export default class UpdateCourse extends Component {
   };
 
   cancel = (event) => {
-    this.props.history.push('/');
+    this.props.history.push("/");
   };
 
   courseToUpdate = async () => {
@@ -66,25 +68,24 @@ export default class UpdateCourse extends Component {
     this.props.context.data.getCourse(courseId).then((response) => {
       if (!response.error) {
         let {
-          id,
+          _id,
           title,
           description,
           estimatedTime,
           materialsNeeded,
-          userId,
-        } = response;
+        } = response.course;
+
         // here we set state for the course and the owner
         this.setState({
-          id,
+          _id,
           title,
           description,
           estimatedTime,
           materialsNeeded,
-          userId,
-          owner: response.User.id,
+          user: response.user,
         });
       } else {
-        this.props.history.push('./notfound');
+        this.props.history.push("./notfound");
       }
     });
   };
@@ -92,9 +93,9 @@ export default class UpdateCourse extends Component {
   //This section will check if there the auth user Id not the same as the userId on the course and if so it will render the forbidden page. I am trying two methods below, one via component did update and other just comparing state
 
   componentDidUpdate() {
-    let authId = this.props.context.authenticatedUser.id;
-    if (this.state.owner !== authId) {
-      this.props.history.push('/forbidden');
+    let authId = this.props.context.authenticatedUser._id;
+    if (this.state.user._id !== authId) {
+      this.props.history.push("/forbidden");
     }
   }
 

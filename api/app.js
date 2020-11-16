@@ -25,18 +25,6 @@ db.on("error", console.error.bind(console, "connection error:"));
 db.once("open", function () {
   console.log("db connected");
 });
-// const { sequelize } = require('./models');
-
-// (async () => {
-//   try {
-//     await sequelize.authenticate();
-//     await sequelize.sync();
-//     console.log('Connection to the database successful!');
-//   } catch {
-//     console.error('Unable to connect to the database');
-//   }
-// })();
-
 //
 // variable to enable global error logging
 const enableGlobalErrorLogging =
@@ -65,22 +53,6 @@ app.use((req, res) => {
     message: "Route Not Found",
   });
 });
-
-//
-// setup a global error handler
-// app.use((err, req, res, next) => {
-//   // if (enableGlobalErrorLogging) {
-//   //   console.error(`Global error handler: ${JSON.stringify(err.message)}`);
-//   // }
-//   if (err.name === 'SequelizeValidationError') {
-//     let errors = error.errors.map((err) => err.message);
-//     res.status(400).json({ message: errors });
-//   } else {
-//     res.status(err.status).json({
-//       message: err.message,
-//     });
-//   }
-// });
 
 // set our port
 app.set("port", process.env.PORT || 5000);
