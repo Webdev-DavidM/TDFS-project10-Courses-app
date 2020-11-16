@@ -1,7 +1,7 @@
 // This is a stateful component which is display all the courses on the screen to begin with //
 
-import React, { Component } from 'react';
-import { Link } from 'react-router-dom';
+import React, { Component } from "react";
+import { Link } from "react-router-dom";
 
 export default class Courses extends Component {
   constructor() {
@@ -14,7 +14,7 @@ export default class Courses extends Component {
   // Within the component did ount method i will get the full list of courses from the api
 
   componentDidMount() {
-    return fetch('http://localhost:5000/api/courses').then((response) =>
+    return fetch("http://localhost:5000/api/courses").then((response) =>
       response.json().then((courses) => {
         this.setState({ courses: courses });
       })
@@ -26,10 +26,10 @@ export default class Courses extends Component {
       <div className="bounds">
         {this.state.courses.map((course) => {
           return (
-            <div key={course.id} className="grid-33">
+            <div key={course._id} className="grid-33">
               <Link
                 className="course--module course--link"
-                to={`/courses/${course.id}`}
+                to={`/courses/${course._id}`}
               >
                 <h4 className="course--label">Course</h4>
                 <h3 className="course--title">{course.title}</h3>

@@ -1,13 +1,13 @@
-import React, { Component } from 'react';
-import { Link } from 'react-router-dom';
-const Markdown = require('react-markdown');
+import React, { Component } from "react";
+import { Link } from "react-router-dom";
+const Markdown = require("react-markdown");
 
 export default class CourseDetail extends Component {
   constructor() {
     super();
     this.state = {
       course: [],
-      owner: [],
+      owner: null,
     };
     this.selectedCourse = this.selectedCourse.bind(this);
     this.returnToList = this.returnToList.bind(this);
@@ -27,12 +27,12 @@ export default class CourseDetail extends Component {
       let user = { password, username };
       let courseId = this.props.match.params.id;
       this.props.context.data.deleteCourse(courseId, user).then((errors) => {
-        if (errors.length) {
+        if (errors) {
           this.setState({ errors });
-        } else this.props.history.push('/');
+        } else this.props.history.push("/");
       });
     } else {
-      this.props.history.push('/forbidden');
+      this.props.history.push("/forbidden");
     }
   };
 
@@ -40,30 +40,28 @@ export default class CourseDetail extends Component {
     let courseId = this.props.match.params.id;
     this.props.context.data.getCourse(courseId).then((response) => {
       if (!response.error) {
-        this.setState({ course: response, owner: response.User });
+        this.setState({ course: response.course, owner: response.user });
       } else {
-        this.props.history.push('/notfound');
+        this.props.history.push("/notfound");
       }
     });
   };
 
-  // })
-  // .catch((error) => {
-  //   this.props.history.push('/notfound');
-  // });
-
   returnToList() {
-    this.props.history.push('/');
+    this.props.history.push("/");
   }
   render() {
     // the conditional rendering below will only display the delete and update course button if the authenticated user owns the course. I have checked this by comparing the authenticatedUser email address with the owner email address and if they match then rendering the buttons.
-    
     let authToChange = false;
-    if (this.props.context.authenticatedUser) {
-      let authUser = this.props.context.authenticatedUser.emailAddress;
-      let Owner = this.state.owner.emailAddress;
+    let author = null;
+    if (this.props.context.authenticatedUser && this.state.owner) {
+      let authUser = this.props.context.authenticatedUser._id;
+      let Owner = this.state.owner._id;
       authToChange = Owner === authUser;
+      let { firstName, lastName } = this.state.owner;
+      author = `${firstName} ${lastName}`;
     }
+
     let course = this.state.course;
     let courseId = this.props.match.params.id;
     return (
@@ -76,7 +74,7 @@ export default class CourseDetail extends Component {
                   <span>
                     <div className="button">
                       <Link
-                        style={{ color: 'white' }}
+                        style={{ color: "white" }}
                         to={`/courses/${courseId}/update`}
                       >
                         Update Course
@@ -103,9 +101,7 @@ export default class CourseDetail extends Component {
           <div className="course--header">
             <h4 className="course--label">Course</h4>
             <h3 className="course--title">{course.title}</h3>
-            <p>
-              By {this.state.owner.firstName} {this.state.owner.lastName}
-            </p>
+            <p>By {author}</p>
           </div>
           <div className="course--description">
             <Markdown source={course.description} />

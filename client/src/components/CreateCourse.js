@@ -1,11 +1,11 @@
-import React, { Component } from 'react';
+import React, { Component } from "react";
 
 export default class CreateCourse extends Component {
   state = {
-    title: '',
-    description: '',
-    estimatedTime: '',
-    materialsNeeded: '',
+    title: "",
+    description: "",
+    estimatedTime: "",
+    materialsNeeded: "",
     errors: null,
   };
 
@@ -34,17 +34,16 @@ export default class CreateCourse extends Component {
     let { title, description, estimatedTime, materialsNeeded } = this.state;
     let course = { title, description, estimatedTime, materialsNeeded, userId };
     this.props.context.data.createCourse(course, user).then((errors) => {
-      console.log(errors);
       if (errors) {
         this.setState({ errors: errors.message });
       } else {
-        this.props.history.push('/');
+        this.props.history.push("/");
       }
     });
   };
 
   cancel = (event) => {
-    this.props.history.push('/');
+    this.props.history.push("/");
   };
 
   render() {
